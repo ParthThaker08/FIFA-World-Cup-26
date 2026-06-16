@@ -637,7 +637,7 @@ body.light #nm-countdown{ color:#005BAC!important; }
 // ── DATA ──────────────────────────────────────────────────────────────────────
 const MATCHES = [
   // THU Jun 11
-  {day:'THU',date:'Jun 11',g:'A',time:'3:00pm',t1:'🇲🇽 Mexico',t2:'🇿🇦 South Africa',score:'2 – 0',live:false,city:'Mexico City',ko:false},
+  {day:'THU',date:'Jun 11',g:'A',time:'3:00pm',t1:'🇲🇽 Mexico',t2:'🇿🇦 South Africa',live:false,city:'Mexico City',ko:false},
   {day:'THU',date:'Jun 11',g:'A',time:'10:00pm',t1:'🇰🇷 South Korea',t2:'🇨🇿 Czechia',score:null,live:false,city:'Guadalajara',ko:false},
   // FRI Jun 12
   {day:'FRI',date:'Jun 12',g:'B',time:'3:00pm',t1:'🇨🇦 Canada',t2:'🇧🇦 Bosnia & Herz.',score:null,live:false,city:'Toronto',ko:false},
@@ -653,9 +653,9 @@ const MATCHES = [
   {day:'SUN',date:'Jun 14',g:'E',time:'7:00pm',t1:'🇨🇮 Ivory Coast',t2:'🇪🇨 Ecuador',score:null,live:false,city:'Philadelphia',ko:false},
   {day:'SUN',date:'Jun 14',g:'F',time:'10:00pm',t1:'🇸🇪 Sweden',t2:'🇹🇳 Tunisia',score:null,live:false,city:'Monterrey',ko:false},
   // MON Jun 15
-  {day:'MON',date:'Jun 15',g:'H',time:'12:00pm',t1:'🇪🇸 Spain',t2:'🇨🇻 Cape Verde',score:'0 – 0',live:false,_ft:true,city:'Atlanta',ko:false},
-  {day:'MON',date:'Jun 15',g:'G',time:'3:00pm',t1:'🇧🇪 Belgium',t2:'🇪🇬 Egypt',score:'1 – 1',live:false,_ft:true,city:'Seattle',ko:false},
-  {day:'MON',date:'Jun 15',g:'H',time:'6:00pm',t1:'🇸🇦 Saudi Arabia',t2:'🇺🇾 Uruguay',score:'1 – 1',live:false,_ft:true,city:'Miami',ko:false},
+  {day:'MON',date:'Jun 15',g:'H',time:'12:00pm',t1:'🇪🇸 Spain',t2:'🇨🇻 Cape Verde',live:false,city:'Atlanta',ko:false},
+  {day:'MON',date:'Jun 15',g:'G',time:'3:00pm',t1:'🇧🇪 Belgium',t2:'🇪🇬 Egypt',live:false,city:'Seattle',ko:false},
+  {day:'MON',date:'Jun 15',g:'H',time:'6:00pm',t1:'🇸🇦 Saudi Arabia',t2:'🇺🇾 Uruguay',live:false,city:'Miami',ko:false},
   {day:'MON',date:'Jun 15',g:'G',time:'9:00pm',t1:'🇮🇷 Iran',t2:'🇳🇿 New Zealand',score:null,live:false,city:'Los Angeles',ko:false},
   // TUE Jun 16
   {day:'TUE',date:'Jun 16',g:'I',time:'3:00pm',t1:'🇫🇷 France',t2:'🇸🇳 Senegal',score:null,live:false,city:'New York/NJ',ko:false},
@@ -2024,11 +2024,17 @@ function buildModalBody(data, m){
     const hName = stripEmoji(homeTeam.team?.displayName || m.t1).trim();
     const aName = stripEmoji(awayTeam.team?.displayName || m.t2).trim();
 
+    // ESPN uses different label names — map friendly display names to ESPN labels
+    const STAT_ALIASES = {
+      'Total Shots':     'SHOTS',
+      'Shots on Target': 'ON GOAL',
+      'Accurate Passes': 'Accurate Passes',
+    };
     // Stat categories matching FIFA's layout
     const CATS = [
-      { name:'Attacking',    stats:['Possession','Total Shots','Shots on Target','Expected Goals','xG'] },
-      { name:'Defending',    stats:['Saves','Fouls','Yellow Cards','Red Cards','Offsides'] },
-      { name:'Distribution', stats:['Corner Kicks','Passes','Pass Accuracy','Crosses'] },
+      { name:'Attacking',    stats:['Possession','Total Shots','Shots on Target','Blocked Shots'] },
+      { name:'Defending',    stats:['Saves','Fouls','Yellow Cards','Red Cards','Offsides','Interceptions'] },
+      { name:'Distribution', stats:['Corner Kicks','Passes','Accurate Passes','Crosses','Long Balls'] },
     ];
 
     statsHtml += `<div class="fst-team-row">
@@ -2038,7 +2044,7 @@ function buildModalBody(data, m){
 
     let hasAnyStat = false;
     CATS.forEach(cat => {
-      const avail = cat.stats.filter(s => statsMap[s]);
+      const avail = cat.stats.filter(s => statsMap[STAT_ALIASES[s] || s]);
       if(!avail.length) return;
       hasAnyStat = true;
 
@@ -2047,8 +2053,9 @@ function buildModalBody(data, m){
         <div class="fst-rows">`;
 
       avail.forEach(stat => {
-        const hv = statsMap[stat]?.h ?? '–';
-        const av = statsMap[stat]?.a ?? '–';
+        const espnKey = STAT_ALIASES[stat] || stat;
+        const hv = statsMap[espnKey]?.h ?? '–';
+        const av = statsMap[espnKey]?.a ?? '–';
 
         // Compute bar widths
         const isPercent = String(hv).includes('%') || String(av).includes('%');
